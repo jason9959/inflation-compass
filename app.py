@@ -141,7 +141,7 @@ if not (ROOT/'data/prices.csv').exists() or not (ROOT/'data/T5YIE.csv').exists()
 
 stamp=((ROOT/'data/prices.csv').stat().st_mtime,(ROOT/'data/T5YIE.csv').stat().st_mtime)
 try:
-prices,fred=load_data(stamp)
+    prices,fred=load_data(stamp)
 except Exception as error:
     st.error(f'데이터를 읽을 수 없습니다. download_data.py로 데이터를 다시 받아주세요. 상세: {error}')
     st.stop()
