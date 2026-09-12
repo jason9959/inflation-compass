@@ -141,14 +141,18 @@ if not (ROOT/'data/prices.csv').exists() or not (ROOT/'data/T5YIE.csv').exists()
 
 stamp=((ROOT/'data/prices.csv').stat().st_mtime,(ROOT/'data/T5YIE.csv').stat().st_mtime)
 try:
-    prices,fred=load_data(stamp)
+prices,fred=load_data(stamp)
 except Exception as error:
     st.error(f'데이터를 읽을 수 없습니다. download_data.py로 데이터를 다시 받아주세요. 상세: {error}')
     st.stop()
 
 calendar_previous_month_end=pd.Timestamp.today().normalize().replace(day=1)-pd.Timedelta(days=1)
 default_end=min(calendar_previous_month_end,prices.index[-1].normalize())
-default_start=default_end-pd.DateOffset(years=10)
+# Require a common history across every ETF used by the signal and portfolio.
+required_assets=['SPY','XLE','XLI','XLF','XLB','XLU','XLV','XLP','XLK','IEF']
+asset_first_dates={asset:prices[asset].dropna().index.min() for asset in required_assets}
+common_start=max(asset_first_dates.values()).normalize()
+default_start=max(common_start,default_end-pd.DateOffset(years=10))
 
 page=st.session_state.page
 if page=='home':
@@ -186,8 +190,9 @@ elif page=='conditions':
     saved=st.session_state.saved
     with st.form('conditions'):
         c1,c2=st.columns(2)
-        start=c1.date_input('분석 시작일',value=saved.get('start',default_start.date()),min_value=pd.Timestamp('2003-01-01').date(),max_value=prices.index[-1].date())
+        start=c1.date_input('분석 시작일',value=max(saved.get('start',default_start.date()),default_start.date()),min_value=common_start.date(),max_value=prices.index[-1].date())
         end=c2.date_input('분석 종료일',value=saved.get('end',default_end.date()),min_value=pd.Timestamp('2003-01-01').date(),max_value=prices.index[-1].date())
+        st.caption(f'모든 필수 ETF의 공통 데이터 시작일: {common_start:%Y.%m.%d}')
         preset=st.selectbox('거래 가정',list(PRESETS),index=list(PRESETS).index(saved.get('preset','원문 재현 가정')))
         st.caption('보수적 검증: FRED 입력 하루 지연 + 다음 거래일 종가 체결 + 완전 교체당 비용 10bp. 원문 재현 가정: 당일 종가 신호·체결, 비용 0.')
         initial=st.number_input('시작 금액 (USD)',min_value=100.0,value=saved.get('initial',10000.0),step=1000.0)
