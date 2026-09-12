@@ -72,7 +72,7 @@ def formatted_stats(nav,spy):
 def yes_no(value):
     return '충족' if bool(value) else '미충족'
 
-def static_line_chart(data, colors, ylabel=None, height=280):
+def static_line_chart(data, colors, ylabel=None, height=280, annotations=None):
     """Render a clean static PNG so result charts have no interactive toolbar."""
     frame=data.dropna(how='all')
     fig=Figure(figsize=(11.5,height/100),dpi=140,facecolor='white')
@@ -92,6 +92,14 @@ def static_line_chart(data, colors, ylabel=None, height=280):
     ax.xaxis.set_major_locator(locator)
     ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
     ax.legend(loc='upper left',frameon=False,ncol=min(3,len(frame.columns)),fontsize=8)
+    if annotations:
+        ymin,ymax=ax.get_ylim()
+        for date,label in annotations.items():
+            date=pd.Timestamp(date)
+            if frame.index.min() <= date <= frame.index.max():
+                ax.axvline(date,color='#B8C0CC',linewidth=.8,linestyle='--',alpha=.7)
+                ax.annotate(str(label),xy=(date,ymax),xytext=(3,-4),textcoords='offset points',
+                            ha='left',va='top',fontsize=8,color='#4E5968',fontweight='bold',rotation=90)
     fig.tight_layout(pad=.8)
     output=io.BytesIO()
     fig.savefig(output,format='png',bbox_inches='tight',facecolor='white')
@@ -246,11 +254,12 @@ elif page=='results':
     with t1:
         st.subheader('자산 가치 변화')
         value_chart=pd.DataFrame({'Compass':nav*initial,'SPY':spy*initial})
-        st.image(static_line_chart(value_chart,['#3182F6','#A5ABB3'],'Portfolio value (USD)',340),width='stretch')
+        holding_annotations={e.date:HOLDINGS[e.regime].split(' · ')[0] for e in events.itertuples()}
+        st.image(static_line_chart(value_chart,['#3182F6','#A5ABB3'],'Portfolio value (USD)',340,holding_annotations),width='stretch')
         st.dataframe(formatted_stats(nav,spy),hide_index=True,width='stretch')
         st.subheader('고점 대비 하락률')
         dd=pd.DataFrame({'Compass':(nav/nav.cummax().clip(lower=1)-1)*100,'SPY':(spy/spy.cummax()-1)*100})
-        st.image(static_line_chart(dd,['#3182F6','#A5ABB3'],'Drawdown (%)',240),width='stretch')
+        st.image(static_line_chart(dd,['#3182F6','#A5ABB3'],'Drawdown (%)',240,holding_annotations),width='stretch')
     with t2:
         st.subheader('최근 월말 판정')
         decisions=monthly_decisions(sig,events)
