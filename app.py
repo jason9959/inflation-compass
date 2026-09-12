@@ -254,7 +254,13 @@ elif page=='results':
     with t1:
         st.subheader('자산 가치 변화')
         value_chart=pd.DataFrame({'Compass':nav*initial,'SPY':spy*initial})
-        holding_annotations={e.date:HOLDINGS[e.regime].split(' · ')[0] for e in events.itertuples()}
+        holding_annotations={}
+        previous_holding=None
+        for e in events.itertuples():
+            holding=HOLDINGS[e.regime].split(' · ')[0]
+            if holding != previous_holding:
+                holding_annotations[e.date]=holding
+                previous_holding=holding
         st.image(static_line_chart(value_chart,['#3182F6','#A5ABB3'],'Portfolio value (USD)',340,holding_annotations),width='stretch')
         st.dataframe(formatted_stats(nav,spy),hide_index=True,width='stretch')
         st.subheader('고점 대비 하락률')
