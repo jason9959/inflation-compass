@@ -98,9 +98,12 @@ def static_line_chart(data, colors, ylabel=None, height=280, annotations=None):
             date=pd.Timestamp(date)
             if frame.index.min() <= date <= frame.index.max():
                 ax.axvline(date,color='#B8C0CC',linewidth=.8,linestyle='--',alpha=.7)
-                ax.annotate(str(label),xy=(date,ymax),xytext=(3,-4),textcoords='offset points',
-                            ha='left',va='top',fontsize=8,color='#4E5968',fontweight='bold',rotation=90)
+                ax.annotate(str(label),xy=(date,ymin),xytext=(3,-18),textcoords='offset points',
+                            ha='left',va='top',fontsize=8,color='#4E5968',fontweight='bold',rotation=90,
+                            clip_on=False)
     fig.tight_layout(pad=.8)
+    if annotations:
+        fig.subplots_adjust(bottom=.24)
     output=io.BytesIO()
     fig.savefig(output,format='png',bbox_inches='tight',facecolor='white')
     return output.getvalue()
