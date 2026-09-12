@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.log
+data/*.json
+data/CPIAUCSL.csv
+results/*
+!results/summary.csv
+!results/report.html
