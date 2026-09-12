@@ -121,6 +121,19 @@ def regime_cell(value):
     color='#176B43' if positive else '#B42318'
     return f'background-color:{background};color:{color};font-weight:700'
 
+def result_report_image(nav, spy, initial, events):
+    fig=Figure(figsize=(12,8.5),dpi=150,facecolor='white')
+    axes=fig.subplots(2,1)
+    value=pd.DataFrame({'Compass':nav*initial,'SPY':spy*initial})
+    dd=pd.DataFrame({'Compass':(nav/nav.cummax().clip(lower=1)-1)*100,'SPY':(spy/spy.cummax()-1)*100})
+    for ax,frame,title,ylabel in [(axes[0],value,'Inflation Compass · Portfolio Value','USD'),(axes[1],dd,'Inflation Compass · Drawdown','%')]:
+        for col,color in zip(frame.columns,['#3182F6','#A5ABB3']): ax.plot(frame.index,frame[col],label=col,color=color,lw=1.5)
+        ax.set_title(title,loc='left',fontsize=13,fontweight='bold'); ax.set_ylabel(ylabel); ax.grid(axis='y',alpha=.25); ax.legend(frameon=False)
+        ax.spines[['top','right','left']].set_visible(False)
+    fig.suptitle('인플레이션 나침반 백테스트 결과',fontsize=18,fontweight='bold',x=.05,ha='left')
+    fig.tight_layout(rect=[0,.02,1,.96])
+    out=io.BytesIO(); fig.savefig(out,format='png',facecolor='white',bbox_inches='tight'); return out.getvalue()
+
 def monthly_decisions(sig, events):
     if events.empty:
         return pd.DataFrame()
@@ -339,7 +352,10 @@ elif page=='results':
         z.writestr('trades.csv',events.to_csv(index=False))
         z.writestr('signals.csv',sig.loc[:nav.index[-1]].to_csv())
         z.writestr('config.json',json.dumps({'config':cfg.__dict__,'requested':{k:str(v) for k,v in st.session_state.saved.items()}},ensure_ascii=False,indent=2))
-    st.download_button('결과 저장 · CSV 묶음',buf.getvalue(),'inflation-compass-results.zip','application/zip',width='stretch')
+    report_png=result_report_image(nav,spy,initial,events)
+    save_col,csv_col=st.columns(2)
+    save_col.download_button('결과 저장',report_png,'inflation-compass-result.png','image/png',width='stretch')
+    csv_col.download_button('CSV 묶음',buf.getvalue(),'inflation-compass-results.zip','application/zip',width='stretch')
 
 elif page=='audit':
     back()
